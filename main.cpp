@@ -1,6 +1,4 @@
 #include <igl/opengl/glfw/Viewer.h>
-
-#include <igl/opengl/glfw/Viewer.h>
 #include <igl/AABB.h>
 #include <igl/in_element.h>
 #include <igl/signed_distance.h>
@@ -11,7 +9,7 @@
 #include <algorithm>
 
 
-#define Real float
+#define Real double
 using namespace Eigen;
 using namespace std;
 
@@ -98,7 +96,7 @@ public:
     int num_tris;
     double wi;//stiffness?
 
-    Cloth(float vertices[],int faceTriIds[]){
+    Cloth(double vertices[],int faceTriIds[]){
         num_vertices=sizeof(vertices)/sizeof(vertices[0])/3;
         num_tris=sizeof(faceTriIds)/sizeof(faceTriIds[0])/3;
         for(int i = 0; i < num_vertices;i++){
@@ -179,7 +177,7 @@ public:
 
 
     void init_pd(double dt){
-		Eigen::SparseMatrix<float> A(3*num_vertices,3*num_vertices);
+		Eigen::SparseMatrix<double> A(3*num_vertices,3*num_vertices);
 		//A=M/h^2+for(constraint:constraints)wi_(AiSi)T_AiSi
 		A = w_/dt/dt+stretching_constraint_get_wi_SiT_AiT_Ai_Si();
 		cholesky_decomposition_.compute(A);
@@ -260,7 +258,7 @@ public:
 	}
 };
 
-float mesh_vertices[]={
+double mesh_vertices[]={
                         -0.200000, 1.145859, -0.000000,  -0.200000, 1.105859, -0.000000,  -0.200000, 1.065859, -0.000000,  -0.200000, 1.025859, -0.000000,  -0.200000, 0.985859, -0.000000,  
 						-0.200000, 0.945859, -0.000000,  -0.200000, 0.905859, -0.000000,  -0.200000, 0.865859, -0.000000,  -0.200000, 0.825859, -0.000000,  -0.200000, 0.785859, -0.000000,  
 						-0.200000, 0.745859, -0.000000,  -0.200000, 0.705859, -0.000000,  -0.200000, 0.665859, -0.000000,  -0.200000, 0.625859, -0.000000,  -0.200000, 0.585859, -0.000000,  
@@ -2217,48 +2215,47 @@ int maxIte = 5;
 int frame = 0;
 bool pause = true;
 
-bool pre_draw(igl::opengl::glfw::Viewer &viewer)
-{
-	if (!pause)
-	{
-		frame++;
-		Real height = 0.3 * std::sin(frame * 0.1);
-		// update_sphere(Vec3d(0.0, height, 0.0));
-
-		// for (int i = 0; i < pull_points.size(); i++)
-		// softbody.pos_.row(pull_points[i]) += Vec3d(0.0, height, 0.0);
-
-		cloth.update(dt,maxIte);
-	}
-	// softbody.write_obj("../model/liver2/f" +std::to_string(frame++) + ".obj");
-
-	viewer.data().clear();
-	viewer.data().set_mesh(cloth.pos_, cloth.faces_);
-	viewer.core().align_camera_center(cloth.pos_, cloth.faces_);
-	viewer.append_mesh();
-	//viewer.data().set_mesh(V_sphere, T_sphere);
-	// viewer.data_list[0].set_colors(Eigen::RowVector3d(1, 0, 0));
-	// viewer.data_list[1].set_colors(Eigen::RowVector3d(0, 1, 0));
-	return false;
-}
-bool post_draw(igl::opengl::glfw::Viewer &viewer)
-{
-	for (auto &data : viewer.data_list)
-	{
-		data.clear();
-	}
-	return false;
-}
-
-bool key_pressed(igl::opengl::glfw::Viewer &viewer)
-{
-	if (key == 'p')
-	{
-		pause = !pause;
-		std::cout << std::boolalpha << pause << std::endl;
-	}
-	return false;
-}
+//bool pre_draw(igl::opengl::glfw::Viewer &viewer)
+//{
+//	if (!pause)
+//	{
+//		frame++;
+//		Real height = 0.3 * std::sin(frame * 0.1);
+//		// update_sphere(Vec3d(0.0, height, 0.0));
+//
+//		// for (int i = 0; i < pull_points.size(); i++)
+//		// softbody.pos_.row(pull_points[i]) += Vec3d(0.0, height, 0.0);
+//
+//		cloth.update(dt,maxIte);
+//	}
+//	// softbody.write_obj("../model/liver2/f" +std::to_string(frame++) + ".obj");
+//
+//	viewer.data().clear();
+//	viewer.data().set_mesh(cloth.pos_, cloth.faces_);
+//	viewer.core().align_camera_center(cloth.pos_, cloth.faces_);
+//	viewer.append_mesh();
+//	//viewer.data().set_mesh(V_sphere, T_sphere);
+//	// viewer.data_list[0].set_colors(Eigen::RowVector3d(1, 0, 0));
+//	// viewer.data_list[1].set_colors(Eigen::RowVector3d(0, 1, 0));
+//	return false;
+//}
+//bool post_draw(igl::opengl::glfw::Viewer &viewer)
+//{
+//	for (auto &data : viewer.data_list)
+//	{
+//		data.clear();
+//	}
+//	return false;
+//}
+//bool key_pressed(igl::opengl::glfw::Viewer &viewer, unsigned int key, int modifiers)
+//{
+//	if (key == 'p')
+//	{
+//		pause = !pause;
+//		std::cout << std::boolalpha << pause << std::endl;
+//	}
+//	return false;
+//}
 
 
 int main()
@@ -2268,9 +2265,9 @@ int main()
 
 	//softbody.init_static_points(static_points);
 	igl::opengl::glfw::Viewer viewer;
-	viewer.callback_pre_draw = &pre_draw;
-	viewer.callback_post_draw = &post_draw;
-	viewer.callback_key_pressed = &key_pressed;
+	//viewer.callback_pre_draw = &pre_draw;
+	//viewer.callback_post_draw = &post_draw;
+	//viewer.callback_key_pressed = &key_pressed;
 	viewer.core().is_animating = true;
 	viewer.data().set_face_based(false);
 	viewer.launch();

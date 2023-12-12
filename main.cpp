@@ -3,6 +3,9 @@
 #include <igl/in_element.h>
 #include <igl/signed_distance.h>
 #include <igl/barycentric_coordinates.h>
+#include <igl/unproject_onto_mesh.h>
+#include <igl/Timer.h>
+
 
 #include <iostream>
 #include <algorithm>
@@ -34,14 +37,14 @@ double mesh_vertices[] = {
 	
 };
 int mesh_faceTriIds[] = {
-	0,1,10,0,9,10,1,2,11,1,10,11,2,3,11,3,11,12,3,4,12,4,12,13,4,5,14,4,13,14,5,6,14,6,14,15,6,7,15,7,15,16,7,8,16,8,16,17,
-	9,10,18,10,18,19,10,11,19,11,19,20,11,12,21,11,20,21,12,13,22,12,21,22,13,14,23,13,22,23,14,15,24,14,23,24,15,16,25,15,24,25,16,17,26,16,25,26,
-	18,19,28,18,27,28,19,20,28,20,28,29,20,21,30,20,29,30,21,22,30,22,30,31,22,23,32,22,31,32,23,24,32,24,32,33,24,25,33,25,33,34,25,26,35,25,34,35,
-	27,28,36,28,36,37,28,29,37,29,37,38,29,30,39,29,38,39,30,31,39,31,39,40,31,32,40,32,40,41,32,33,42,32,41,42,33,34,43,33,42,43,34,35,43,35,43,44,
-	36,37,46,36,45,46,37,38,46,38,46,47,38,39,48,38,47,48,39,40,48,40,48,49,40,41,50,40,49,50,41,42,51,41,50,51,42,43,52,42,51,52,43,44,52,44,52,53,
-	45,46,55,45,54,55,46,47,56,46,55,56,47,48,56,48,56,57,48,49,58,48,57,58,49,50,59,49,58,59,50,51,59,51,59,60,51,52,61,51,60,61,52,53,62,52,61,62,
-	54,55,64,54,63,64,55,56,64,56,64,65,56,57,66,56,65,66,57,58,66,58,66,67,58,59,67,59,67,68,59,60,69,59,68,69,60,61,70,60,69,70,61,62,71,61,70,71,
-	63,64,73,63,72,73,64,65,74,64,73,74,65,66,75,65,74,75,66,67,75,67,75,76,67,68,76,68,76,77,68,69,78,68,77,78,69,70,78,70,78,79,70,71,79,71,79,80
+	0,1,10,0,10,9,1,2,11,1,11,10,2,3,11,3,12,11,3,4,12,4,13,12,4,5,14,4,14,13,5,6,14,6,15,14,6,7,15,7,16,15,7,8,16,8,17,16,
+	9,10,18,10,19,18,10,11,19,11,20,19,11,12,21,11,21,20,12,13,22,12,22,21,13,14,23,13,23,22,14,15,24,14,24,23,15,16,25,15,25,24,16,17,26,16,26,25,
+	18,19,28,18,28,27,19,20,28,20,29,28,20,21,30,20,30,29,21,22,30,22,31,30,22,23,32,22,32,31,23,24,32,24,33,32,24,25,33,25,34,33,25,26,35,25,35,34,
+	27,28,36,28,37,36,28,29,37,29,38,37,29,30,39,29,39,38,30,31,39,31,40,39,31,32,40,32,41,40,32,33,42,32,42,41,33,34,43,33,43,42,34,35,43,35,44,43,
+	36,37,46,36,46,45,37,38,46,38,47,46,38,39,48,38,48,47,39,40,48,40,49,48,40,41,50,40,50,49,41,42,51,41,51,50,42,43,52,42,52,51,43,44,52,44,53,52,
+	45,46,55,45,55,54,46,47,56,46,56,55,47,48,56,48,57,56,48,49,58,48,58,57,49,50,59,49,59,58,50,51,59,51,60,59,51,52,61,51,61,60,52,53,62,52,62,61,
+	54,55,64,54,64,63,55,56,64,56,65,64,56,57,66,56,66,65,57,58,66,58,67,66,58,59,67,59,68,67,59,60,69,59,69,68,60,61,70,60,70,69,61,62,71,61,71,70,
+	63,64,73,63,73,72,64,65,74,64,74,73,65,66,75,65,75,74,66,67,75,67,76,75,67,68,76,68,77,76,68,69,78,68,78,77,69,70,78,70,79,78,70,71,79,71,80,79
 };
 
 
@@ -155,6 +158,7 @@ class Cloth {
 		int num_edges;//M
 		int num_tris;
 		double wi;//stiffness?
+		int grabId = -1;
 
 		Cloth() {
 			init_mesh();
@@ -389,13 +393,207 @@ class Cloth {
 
 		}
 
+		void startGrab(Eigen::Vector3d mouse_pos,int faceId) {
+			//get grabId
+			int id0 = faces_(faceId, 0);
+			int id1 = faces_(faceId, 1);
+			int id2 = faces_(faceId, 2);
+			int minId = id0;
+			Eigen::Vector3d id0_pos = pos_.row(id0);
+			Eigen::Vector3d id1_pos = pos_.row(id1);
+			Eigen::Vector3d id2_pos = pos_.row(id2);
+			double minDis = (id0_pos- mouse_pos).norm();
+			if ((id1_pos - mouse_pos).norm() < minDis) {
+				minDis = (id1_pos - mouse_pos).norm();
+				minId = id1;
+			}
+			if ((id2_pos - mouse_pos).norm() < minDis) {
+				minDis = (id2_pos - mouse_pos).norm();
+				minId = id2;
+			}
+			grabId = minId;;
+		}
+
+		void moveGrabbed(Eigen::Vector3d pos) {
+			if (grabId >= 0) {
+				pos_(grabId,0) = pos.x();
+				pos_(grabId,1) = pos.y();
+				pos_(grabId,2) = pos.z();
+			}
+		}
+
+		void endGrab(Eigen::Vector3d vel) {
+			if (grabId >= 0) {
+				vel_(grabId, 0) = vel.x();
+				vel_(grabId, 1) = vel.y();
+				vel_(grabId, 2) = vel.z();
+
+			}
+		}
 };
+
+Cloth cloth;
+Eigen::Vector3d prePos;
+Eigen::Vector3d vel;
+//double time;
+bool gMouseDown;
+igl::Timer timer;
+
+bool mouse_down(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
+	gMouseDown = true;
+	int fid;
+	Eigen::Vector3f bc;
+	std::cout << "mouse_down" << std::endl;
+	// Cast a ray in the view direction starting from the mouse position
+	double x = viewer.current_mouse_x;
+	double y = viewer.core().viewport(3) - viewer.current_mouse_y;
+	if (igl::unproject_onto_mesh(Eigen::Vector2f(x, y), viewer.core().view,
+		viewer.core().proj, viewer.core().viewport, cloth.pos_, cloth.faces_, fid, bc))
+	{
+		// paint hit red
+		//fid -> picked faces
+		//prePos = bc;
+		prePos(0) = viewer.down_mouse_x;
+		prePos(1) = viewer.down_mouse_y;
+		prePos(2) = viewer.down_mouse_z;
+		std::cout << "mouse_pos:";
+		std::cout << prePos << std::endl;
+		cloth.startGrab(prePos, fid);
+		vel = Eigen::Vector3d::Zero();
+		timer.start();
+
+		return true;
+	}
+	return false;
+}
+
+
+bool mouse_up(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
+	cloth.endGrab(vel);
+	timer.stop();
+	gMouseDown = false;
+	std::cout << "mouse_up" << std::endl;
+
+	return false;
+}
+
+
+
+bool mouse_move(igl::opengl::glfw::Viewer& viewer, int mouse_x, int mouse_y)
+{
+	if (gMouseDown) {
+		std::cout << "mouse_move" << std::endl;
+		Eigen::Vector3d mouse_pos;
+		mouse_pos(0) = viewer.down_mouse_x;
+		mouse_pos(1) = viewer.down_mouse_y;
+		mouse_pos(2) = viewer.down_mouse_z;
+		if (timer.getElapsedTime() > 0) {
+			vel = (mouse_pos - prePos) / timer.getElapsedTime();
+		}
+		else {
+			vel = Eigen::Vector3d::Zero();
+		}
+
+		prePos = mouse_pos;
+		timer.stop();
+		timer.start();
+
+		cloth.moveGrabbed(prePos);
+
+
+	}
+
+	return false;
+}
+
+//class Grabber {
+//public:
+//	
+//
+//	Grabber() {
+//		prePos = Eigen::Vector3d::Zero();
+//		vel = Eigen::Vector3d::Zero();
+//		timer = igl::Timer::Timer();
+//		//time = 0;
+//		gMouseDown = false;
+//	}
+//
+//	/*void increaseTime(double dt) {
+//		time += dt;
+//	}*/
+//
+//	bool mouse_down(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
+//		gMouseDown = true;
+//		int fid;
+//		Eigen::Vector3f bc;
+//		// Cast a ray in the view direction starting from the mouse position
+//		double x = viewer.current_mouse_x;
+//		double y = viewer.core().viewport(3) - viewer.current_mouse_y;
+//		if (igl::unproject_onto_mesh(Eigen::Vector2f(x, y), viewer.core().view,
+//			viewer.core().proj, viewer.core().viewport, cloth.pos_, cloth.faces_, fid, bc))
+//		{
+//			// paint hit red
+//			//fid -> picked faces
+//			//prePos = bc;
+//			prePos(0) = viewer.down_mouse_x;
+//			prePos(1) = viewer.down_mouse_y;
+//			prePos(2) = viewer.down_mouse_z;
+//			cloth.startGrab(prePos,fid);
+//			vel = Eigen::Vector3d::Zero();
+//			timer.start();
+//			
+//			return true;
+//		}
+//		return false;
+//	}
+//
+//
+//	bool mouse_up(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
+//		cloth.endGrab(vel);
+//		timer.stop();
+//		gMouseDown = false;
+//
+//		return false;
+//	}
+//
+//
+//
+//	bool mouse_move(igl::opengl::glfw::Viewer& viewer, int mouse_x, int mouse_y)
+//	{
+//		if (gMouseDown) {
+//			Eigen::Vector3d mouse_pos;
+//			mouse_pos(0) = viewer.down_mouse_x;
+//			mouse_pos(1) = viewer.down_mouse_y;
+//			mouse_pos(2) = viewer.down_mouse_z;		
+//			if (timer.getElapsedTime() > 0) {
+//				vel = (mouse_pos - prePos) / timer.getElapsedTime();
+//			}
+//			else {
+//				vel = Eigen::Vector3d::Zero();
+//			}
+//
+//			prePos = mouse_pos;
+//			timer.stop();
+//			timer.start();
+//
+//			cloth.moveGrabbed(prePos);
+//			
+//
+//		}
+//
+//		return false;
+//	}
+//};
+
 
 double dt = 0.1;
 int maxIte = 5;
 int frame = 0;
 bool pause = true;
-Cloth cloth;
+
+//Grabber grabber;
+
+
 
 bool pre_draw(igl::opengl::glfw::Viewer& viewer)
 {
@@ -439,11 +637,17 @@ bool key_pressed(igl::opengl::glfw::Viewer& viewer, unsigned int key, int modifi
 	if (key == 'p')
 	{
 		pause = !pause;
-		std::cout << std::boolalpha << pause << std::endl;
+		//std::cout << std::boolalpha << pause << std::endl;
 	}
 
 	return false;
 }
+
+
+
+
+
+
 
 int main()
 {	
@@ -460,6 +664,9 @@ int main()
 	viewer.callback_pre_draw = &pre_draw;
 	viewer.callback_post_draw = &post_draw;
 	viewer.callback_key_pressed = &key_pressed;
+	viewer.callback_mouse_down = &mouse_down;
+	viewer.callback_mouse_move = &mouse_move;
+	viewer.callback_mouse_up = &mouse_up;
 	viewer.core().is_animating = true;
 	viewer.data().set_face_based(false);
 	viewer.launch();

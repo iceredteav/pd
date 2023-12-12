@@ -169,14 +169,7 @@ class Cloth {
 			//get edges_,rest_length_ for 
 			edges_ = getEdges(mesh_faceTriIds, num_tris);
 			//std::cout << edges_ << std::endl;
-			rest_length_.resize(num_edges);
-			for (int i = 0;i < num_edges;i++) {
-				int id0 = edges_(i, 0);
-				int id1 = edges_(i, 1);
-				Eigen::Vector3d const p1 = pos_.row(id0);
-				Eigen::Vector3d const p2 = pos_.row(id1);
-				rest_length_(i) = (p1 - p2).norm();
-			}
+			
 			init_physical_data();
 
 		}
@@ -204,6 +197,7 @@ class Cloth {
 		}
 
 		void init_pd(double dt) {
+			init_constraints();
 			Eigen::SparseMatrix<double> A (num_vertices, num_vertices);
 			//A=M/h^2+for(constraint:constraints)wi_(AiSi)T_AiSi
 			A = stretching_constraint_get_wi_SiT_AiT_Ai_Si();
@@ -212,6 +206,17 @@ class Cloth {
 			}
 			//A.insert(1, 1) = 1;
 			cholesky_decomposition_.compute(A);
+		}
+
+		void init_constraints() {
+			rest_length_.resize(num_edges);
+			for (int i = 0;i < num_edges;i++) {
+				int id0 = edges_(i, 0);
+				int id1 = edges_(i, 1);
+				Eigen::Vector3d const p1 = pos_.row(id0);
+				Eigen::Vector3d const p2 = pos_.row(id1);
+				rest_length_(i) = (p1 - p2).norm();
+			}
 		}
 
 		Eigen::SparseMatrix<double> stretching_constraint_get_wi_SiT_AiT_Ai_Si() {
@@ -229,7 +234,7 @@ class Cloth {
 
 		}
 
-		void presolve(double dt) {
+		void PD_presolve(double dt) {
 			/*std::cout << "pos[0]:";
 			std::cout << pos_.row(0) << std::endl;
 			std::cout << "pos[8]:";
@@ -250,7 +255,49 @@ class Cloth {
 			std::cout << sn.row(8) << std::endl;*/
 		}
 
-		void globalsolve() {
+		void PBD_presolve(double dt) {
+			old_pos_ = pos_;
+			for (int i = 0;i < num_vertices;i++) {
+				if (inv_w_(i, i) != 0) {
+					vel_.row(i) += gravity.row(i) * dt;
+					pos_.row(i) += vel_.row(i) * dt;
+				}
+			}
+
+		}
+
+		void PBD_solve() {
+			PBD_stretchingsolve();
+		}
+
+		void PBD_stretchingsolve() {
+			for (int i = 0;i < num_edges;i++) {
+				int id1 = edges_(i, 0);
+				int id2 = edges_(i, 1);
+				Eigen::Vector3d  q1 = pos_.row(id1);
+				Eigen::Vector3d  q2 = pos_.row(id2);
+				double res_length = rest_length_(i);
+				double length = (q1 - q2).norm();
+				//if (id1 == 0 && id2 == 1) {
+				//	std::cout << "point12_length:" << std::endl;
+				//	std::cout << length << std::endl;
+				//	std::cout << q1 << std::endl;
+				//	std::cout << q2 << std::endl;
+				//}
+				Eigen::Vector3d  n = (q1 - q2) / length;
+				double lambda1 = inv_w_(id1, id1) / (inv_w_(id1, id1) + inv_w_(id2, id2));
+				double lambda2 = inv_w_(id2, id2) / (inv_w_(id1, id1) + inv_w_(id2, id2));
+				pos_.row(id1) -= lambda1 * (length - res_length) * n;//massÏàµÈ
+				pos_.row(id2) += lambda2 * (length - res_length) * n;
+			}
+		}
+
+		void PBD_postsolve(double dt) {
+			vel_ = (pos_ - old_pos_) / dt;
+		}
+
+
+		void PD_globalsolve() {
 			//resize
 			//Apos_=b; A(N*N) pos(N*3) b(N*3)
 			pos_.col(0) = cholesky_decomposition_.solve(b.col(0));
@@ -260,15 +307,15 @@ class Cloth {
 			std::cout << pos_.row(1)<<std::endl;
 		}
 
-		void localsolve() {
+		void PD_localsolve() {
 			//project constraints
 			//for(constrain:constraints)
-			stretchingsolve();
+			PD_stretchingsolve();
 			//bendingsolve();
 
 		}
 
-		void stretchingsolve() {
+		void PD_stretchingsolve() {
 			//Ai=Bi=M^1/2
 			//project_wi_SiT_AiT_Bi_pi
 			for (int i = 0;i < num_edges;i++) {
@@ -306,7 +353,7 @@ class Cloth {
 		}
 
 
-		void postsolve(double dt) {
+		void PD_postsolve(double dt) {
 			for (int i = 0; i < num_vertices; i++)
 			{
 				if (inv_w_(i,i) != 0.0f)
@@ -318,19 +365,28 @@ class Cloth {
 		}
 
 		void update(double dt, int maxIte) {
-			//step	
-			presolve(dt);
-			//std::cout << pos_.row(1) << std::endl;
-			b.resize(num_vertices, 3);
-			for (int ite = 0;ite < maxIte;ite++) {
-				b.setZero();
-				localsolve();
-				b += w_ * sn / dt / dt; //N*N N*3
-				//std::cout << b.row(1) << std::endl;
-				globalsolve();
-				//std::cout << "============" << std::endl;
+			//PD
+			////step	
+			//PD_presolve(dt);
+			////std::cout << pos_.row(1) << std::endl;
+			//b.resize(num_vertices, 3);
+			//for (int ite = 0;ite < maxIte;ite++) {
+			//	b.setZero();
+			//	PD_localsolve();
+			//	b += w_ * sn / dt / dt; //N*N N*3
+			//	//std::cout << b.row(1) << std::endl;
+			//	PD_globalsolve();
+			//	//std::cout << "============" << std::endl;
+			//}
+			//PD_postsolve(dt);
+
+			//PBD
+			PBD_presolve(dt);
+			for (int i = 0;i < maxIte;i++) {
+				PBD_solve();
 			}
-			postsolve(dt);
+			PBD_postsolve(dt);
+
 		}
 
 };
@@ -391,8 +447,8 @@ bool key_pressed(igl::opengl::glfw::Viewer& viewer, unsigned int key, int modifi
 
 int main()
 {	
-
-	cloth.init_pd(dt);
+	cloth.init_constraints();
+	//cloth.init_pd(dt);
 	//std::cout << cloth.pos_ << std::endl;
     igl::opengl::glfw::Viewer viewer;
 	/*cloth.update(dt,maxIte);

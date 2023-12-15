@@ -159,6 +159,7 @@ class Cloth {
 		int num_tris;
 		double wi;//stiffness?
 		int grabId = -1;
+		double grab_inv_mas;
 
 		Cloth() {
 			init_mesh();
@@ -411,7 +412,10 @@ class Cloth {
 				minDis = (id2_pos - mouse_pos).norm();
 				minId = id2;
 			}
-			grabId = minId;;
+			grabId = minId;
+			grab_inv_mas = inv_w_(grabId, grabId);
+			inv_w_(grabId, grabId) = 0;
+			
 		}
 
 		void moveGrabbed(Eigen::Vector3d pos) {
@@ -424,9 +428,11 @@ class Cloth {
 
 		void endGrab(Eigen::Vector3d vel) {
 			if (grabId >= 0) {
+				inv_w_(grabId, grabId) = grab_inv_mas;
 				vel_(grabId, 0) = vel.x();
 				vel_(grabId, 1) = vel.y();
 				vel_(grabId, 2) = vel.z();
+
 
 			}
 		}
@@ -439,39 +445,41 @@ Eigen::Vector3d vel;
 bool gMouseDown;
 igl::Timer timer;
 
+Eigen::Vector3d getMousePos(igl::opengl::glfw::Viewer& viewer) {
+	Eigen::Vector3d mouse_pos;
+	float x = viewer.current_mouse_x;
+	float y = viewer.core().viewport(3) - viewer.current_mouse_y;
+	float z = viewer.down_mouse_z;
+	Eigen::Matrix<float, 3, 1> mouse_screen_pos;
+	mouse_screen_pos(0, 0) = x;
+	mouse_screen_pos(1, 0) = y;
+	mouse_screen_pos(2, 0) = z;
+	Eigen::Matrix<float, 3, 1> mouse_world_pos;
+
+	mouse_world_pos = mouse_world_pos = igl::unproject(mouse_screen_pos, viewer.core().view, viewer.core().proj, viewer.core().viewport);
+	mouse_pos(0) = mouse_world_pos(0, 0);
+	mouse_pos(1) = mouse_world_pos(1, 0);
+	mouse_pos(2) = mouse_world_pos(2, 0);
+
+	return mouse_pos;
+}
+
 bool mouse_down(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
-	gMouseDown = true;
 	int fid;
 	Eigen::Vector3f bc;
 	std::cout << "mouse_down" << std::endl;
 	// Cast a ray in the view direction starting from the mouse position
 	float x = viewer.current_mouse_x;
 	float y = viewer.core().viewport(3) - viewer.current_mouse_y;
-	float z = viewer.down_mouse_z;
-	Eigen::Matrix<float,3,1> mouse_screen_pos;
-	//mouse_screen_pos.resize(3, 1);
-	mouse_screen_pos(0,0) = x;
-	mouse_screen_pos(1,0) = y;
-	mouse_screen_pos(2,0) = z;
-	Eigen::Matrix<float,3,1> mouse_world_pos;
-	//mouse_world_pos.resize(3, 1);
-	//double objx, objy, objz;//获得的世界坐标值
-	std::cout << "proj matrix "<< std::endl;
-	std::cout << viewer.core().proj << std::endl;
-	std::cout << "viewerport matrix " << std::endl;
-	std::cout << viewer.core().viewport << std::endl;
-
-	mouse_world_pos = mouse_world_pos = igl::unproject(mouse_screen_pos, viewer.core().view,viewer.core().proj, viewer.core().viewport);
 	//gluUnProject((GLdouble)x, (GLdouble)y, (GLdouble)z, modelview, projection, viewport, &prePos(0), &prePos(1), &prePos(2));
 	if (igl::unproject_onto_mesh(Eigen::Vector2f(x, y), viewer.core().view,
 		viewer.core().proj, viewer.core().viewport, cloth.pos_, cloth.faces_, fid, bc))
-	{
+	{	
+		gMouseDown = true;
 		// paint hit red
 		//fid -> picked faces
 		//prePos = bc;
-		prePos(0) = mouse_world_pos(0,0);
-		prePos(1) = mouse_world_pos(1,0);
-		prePos(2) = mouse_world_pos(2,0);
+		prePos = getMousePos(viewer);
 		std::cout << "mouse_pos:";
 		std::cout << prePos << std::endl;
 		cloth.startGrab(prePos, fid);
@@ -485,6 +493,13 @@ bool mouse_down(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
 
 
 bool mouse_up(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
+	
+	if (timer.getElapsedTime() > 0) {
+			vel = (getMousePos(viewer) - prePos) / timer.getElapsedTime();
+	}
+	else {
+			vel = Eigen::Vector3d::Zero();
+	}
 	cloth.endGrab(vel);
 	timer.stop();
 	gMouseDown = false;
@@ -495,26 +510,15 @@ bool mouse_up(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
 
 
 
+
 bool mouse_move(igl::opengl::glfw::Viewer& viewer, int mouse_x, int mouse_y)
 {
 	if (gMouseDown) {
 		std::cout << "mouse_move" << std::endl;
-		Eigen::Vector3d mouse_pos;
-		mouse_pos(0) = viewer.down_mouse_x;
-		mouse_pos(1) = viewer.down_mouse_y;
-		mouse_pos(2) = viewer.down_mouse_z;
-		if (timer.getElapsedTime() > 0) {
-			vel = (mouse_pos - prePos) / timer.getElapsedTime();
-		}
-		else {
-			vel = Eigen::Vector3d::Zero();
-		}
+		/*timer.stop();
+		timer.start();*/
 
-		prePos = mouse_pos;
-		timer.stop();
-		timer.start();
-
-		cloth.moveGrabbed(prePos);
+		cloth.moveGrabbed(getMousePos(viewer));
 
 
 	}

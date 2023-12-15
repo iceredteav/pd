@@ -445,17 +445,33 @@ bool mouse_down(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
 	Eigen::Vector3f bc;
 	std::cout << "mouse_down" << std::endl;
 	// Cast a ray in the view direction starting from the mouse position
-	double x = viewer.current_mouse_x;
-	double y = viewer.core().viewport(3) - viewer.current_mouse_y;
+	float x = viewer.current_mouse_x;
+	float y = viewer.core().viewport(3) - viewer.current_mouse_y;
+	float z = viewer.down_mouse_z;
+	Eigen::Matrix<float,3,1> mouse_screen_pos;
+	//mouse_screen_pos.resize(3, 1);
+	mouse_screen_pos(0,0) = x;
+	mouse_screen_pos(1,0) = y;
+	mouse_screen_pos(2,0) = z;
+	Eigen::Matrix<float,3,1> mouse_world_pos;
+	//mouse_world_pos.resize(3, 1);
+	//double objx, objy, objz;//获得的世界坐标值
+	std::cout << "proj matrix "<< std::endl;
+	std::cout << viewer.core().proj << std::endl;
+	std::cout << "viewerport matrix " << std::endl;
+	std::cout << viewer.core().viewport << std::endl;
+
+	mouse_world_pos = mouse_world_pos = igl::unproject(mouse_screen_pos, viewer.core().view,viewer.core().proj, viewer.core().viewport);
+	//gluUnProject((GLdouble)x, (GLdouble)y, (GLdouble)z, modelview, projection, viewport, &prePos(0), &prePos(1), &prePos(2));
 	if (igl::unproject_onto_mesh(Eigen::Vector2f(x, y), viewer.core().view,
 		viewer.core().proj, viewer.core().viewport, cloth.pos_, cloth.faces_, fid, bc))
 	{
 		// paint hit red
 		//fid -> picked faces
 		//prePos = bc;
-		prePos(0) = viewer.down_mouse_x;
-		prePos(1) = viewer.down_mouse_y;
-		prePos(2) = viewer.down_mouse_z;
+		prePos(0) = mouse_world_pos(0,0);
+		prePos(1) = mouse_world_pos(1,0);
+		prePos(2) = mouse_world_pos(2,0);
 		std::cout << "mouse_pos:";
 		std::cout << prePos << std::endl;
 		cloth.startGrab(prePos, fid);
@@ -505,85 +521,6 @@ bool mouse_move(igl::opengl::glfw::Viewer& viewer, int mouse_x, int mouse_y)
 
 	return false;
 }
-
-//class Grabber {
-//public:
-//	
-//
-//	Grabber() {
-//		prePos = Eigen::Vector3d::Zero();
-//		vel = Eigen::Vector3d::Zero();
-//		timer = igl::Timer::Timer();
-//		//time = 0;
-//		gMouseDown = false;
-//	}
-//
-//	/*void increaseTime(double dt) {
-//		time += dt;
-//	}*/
-//
-//	bool mouse_down(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
-//		gMouseDown = true;
-//		int fid;
-//		Eigen::Vector3f bc;
-//		// Cast a ray in the view direction starting from the mouse position
-//		double x = viewer.current_mouse_x;
-//		double y = viewer.core().viewport(3) - viewer.current_mouse_y;
-//		if (igl::unproject_onto_mesh(Eigen::Vector2f(x, y), viewer.core().view,
-//			viewer.core().proj, viewer.core().viewport, cloth.pos_, cloth.faces_, fid, bc))
-//		{
-//			// paint hit red
-//			//fid -> picked faces
-//			//prePos = bc;
-//			prePos(0) = viewer.down_mouse_x;
-//			prePos(1) = viewer.down_mouse_y;
-//			prePos(2) = viewer.down_mouse_z;
-//			cloth.startGrab(prePos,fid);
-//			vel = Eigen::Vector3d::Zero();
-//			timer.start();
-//			
-//			return true;
-//		}
-//		return false;
-//	}
-//
-//
-//	bool mouse_up(igl::opengl::glfw::Viewer& viewer, int button, int modifier) {
-//		cloth.endGrab(vel);
-//		timer.stop();
-//		gMouseDown = false;
-//
-//		return false;
-//	}
-//
-//
-//
-//	bool mouse_move(igl::opengl::glfw::Viewer& viewer, int mouse_x, int mouse_y)
-//	{
-//		if (gMouseDown) {
-//			Eigen::Vector3d mouse_pos;
-//			mouse_pos(0) = viewer.down_mouse_x;
-//			mouse_pos(1) = viewer.down_mouse_y;
-//			mouse_pos(2) = viewer.down_mouse_z;		
-//			if (timer.getElapsedTime() > 0) {
-//				vel = (mouse_pos - prePos) / timer.getElapsedTime();
-//			}
-//			else {
-//				vel = Eigen::Vector3d::Zero();
-//			}
-//
-//			prePos = mouse_pos;
-//			timer.stop();
-//			timer.start();
-//
-//			cloth.moveGrabbed(prePos);
-//			
-//
-//		}
-//
-//		return false;
-//	}
-//};
 
 
 double dt = 0.1;

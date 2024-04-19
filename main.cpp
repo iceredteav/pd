@@ -87,14 +87,14 @@ double mesh_vertices[] = {
 -2.000000,-2.000000,0.000000,-1.800000,-2.000000,0.000000,-1.600000,-2.000000,0.000000,-1.400000,-2.000000,0.000000,-1.200000,-2.000000,0.000000,-1.000000,-2.000000,0.000000,-0.800000,-2.000000,0.000000,-0.600000,-2.000000,0.000000,-0.400000,-2.000000,0.000000,-0.200000,-2.000000,0.000000,0.000000,-2.000000,0.000000,0.200000,-2.000000,0.000000,0.400000,-2.000000,0.000000,0.600000,-2.000000,0.000000,0.800000,-2.000000,0.000000,1.000000,-2.000000,0.000000,1.200000,-2.000000,0.000000,1.400000,-2.000000,0.000000,1.600000,-2.000000,0.000000,1.800000,-2.000000,0.000000,2.000000,-2.000000,0.000000
 };
 //int mesh_faceTriIds[] = {
-//	/*0,1,10,0,10,9,1,2,11,1,11,10,2,3,11,3,12,11,3,4,12,4,13,12,4,5,14,4,14,13,5,6,14,6,15,14,6,7,15,7,16,15,7,8,16,8,17,16,
+//	0,1,10,0,10,9,1,2,11,1,11,10,2,3,11,3,12,11,3,4,12,4,13,12,4,5,14,4,14,13,5,6,14,6,15,14,6,7,15,7,16,15,7,8,16,8,17,16,
 //	9,10,18,10,19,18,10,11,19,11,20,19,11,12,21,11,21,20,12,13,22,12,22,21,13,14,23,13,23,22,14,15,24,14,24,23,15,16,25,15,25,24,16,17,26,16,26,25,
 //	18,19,28,18,28,27,19,20,28,20,29,28,20,21,30,20,30,29,21,22,30,22,31,30,22,23,32,22,32,31,23,24,32,24,33,32,24,25,33,25,34,33,25,26,35,25,35,34,
 //	27,28,36,28,37,36,28,29,37,29,38,37,29,30,39,29,39,38,30,31,39,31,40,39,31,32,40,32,41,40,32,33,42,32,42,41,33,34,43,33,43,42,34,35,43,35,44,43,
 //	36,37,46,36,46,45,37,38,46,38,47,46,38,39,48,38,48,47,39,40,48,40,49,48,40,41,50,40,50,49,41,42,51,41,51,50,42,43,52,42,52,51,43,44,52,44,53,52,
 //	45,46,55,45,55,54,46,47,56,46,56,55,47,48,56,48,57,56,48,49,58,48,58,57,49,50,59,49,59,58,50,51,59,51,60,59,51,52,61,51,61,60,52,53,62,52,62,61,
 //	54,55,64,54,64,63,55,56,64,56,65,64,56,57,66,56,66,65,57,58,66,58,67,66,58,59,67,59,68,67,59,60,69,59,69,68,60,61,70,60,70,69,61,62,71,61,71,70,
-//	63,64,73,63,73,72,64,65,74,64,74,73,65,66,75,65,75,74,66,67,75,67,76,75,67,68,76,68,77,76,68,69,78,68,78,77,69,70,78,70,79,78,70,71,79,71,80,79*/
+//	63,64,73,63,73,72,64,65,74,64,74,73,65,66,75,65,75,74,66,67,75,67,76,75,67,68,76,68,77,76,68,69,78,68,78,77,69,70,78,70,79,78,70,71,79,71,80,79
 //};
 int mesh_faceTriIds[] = {
 0,21,22,0,22,1,1,22,2,22,23,2,2,23,24,2,24,3,3,24,4,24,25,4,4,25,26,4,26,5,5,26,6,26,27,6,6,27,28,6,28,7,7,28,8,28,29,8,8,29,30,8,30,9,9,30,10,30,31,10,10,31,32,10,32,11,11,32,12,32,33,12,12,33,34,12,34,13,13,34,14,34,35,14,14,35,36,14,36,15,15,36,16,36,37,16,16,37,38,16,38,17,17,38,18,38,39,18,18,39,40,18,40,19,19,40,20,40,41,20,
@@ -264,7 +264,7 @@ class Cloth {
 		double wi;//stiffness?
 		int grabId = -1;
 		double grab_inv_mas;
-		const double compliance = 0.006;
+		const double compliance = 0.0006;
 		const double k = 1 / compliance;
 		bool flag = false;
 		int cnt = 0;
@@ -305,10 +305,12 @@ class Cloth {
 				if (std::find(attachmentIds, attachmentIds + num_att, i) == attachmentIds + num_att) {
 					//not attachment
 					map(i) = i - attachCnt;
+					inv_w_(i, i) = 1 / mass;
 				}
 				else {
 					map(i) = -1;
 					attachCnt++;
+					inv_w_(i, i) = 0;
 				}
 				M(3 * i, 3 * i) = mass;
 				M(3 * i+1, 3 * i+1) = mass;
@@ -316,8 +318,7 @@ class Cloth {
 				M_dt(3 * i, 3 * i) = temp;
 				M_dt(3 * i + 1, 3 * i + 1) = temp;
 				M_dt(3 * i + 2, 3 * i + 2) = temp;
-				w_(i, i) = 1;
-				inv_w_(i, i) = 1;
+				w_(i, i) = mass;
 			}
 			
 			wi = 0.5;
@@ -359,17 +360,17 @@ class Cloth {
 			lambda = Eigen::MatrixXd::Zero(num_edges, 1);
 			cnt = 0;
 			a = 1;
-			lastF = 0;
-			for (int i = 0;i <num_edges;i++) {
-				int id0 = edges_(i, 0);
-				int id1 = edges_(i, 1);
-				Eigen::Vector3d const p0 = pos_.row(id0);
-				Eigen::Vector3d const p1 = pos_.row(id1);
-				//C(i) = (p0 - p1).norm() - L(i);
-				Eigen::Vector3d x = p0 - p1;
-				double n_L = (p0 - p1).norm();
-				lastF += 0.5 * k * (n_L - rest_length_(i)) * (n_L - rest_length_(i));
-			}
+			//lastF = 0;
+			//for (int i = 0;i <num_edges;i++) {
+			//	int id0 = edges_(i, 0);
+			//	int id1 = edges_(i, 1);
+			//	Eigen::Vector3d const p0 = pos_.row(id0);
+			//	Eigen::Vector3d const p1 = pos_.row(id1);
+			//	//C(i) = (p0 - p1).norm() - L(i);
+			//	Eigen::Vector3d x = p0 - p1;
+			//	double n_L = (p0 - p1).norm();
+			//	lastF += 0.5 * k * (n_L - rest_length_(i)) * (n_L - rest_length_(i));
+			//}
 
 		}
 
@@ -403,79 +404,168 @@ class Cloth {
 			vel_ = (pos_ - old_pos_) / dt;
 		}
 
+		//sparseMatrix
 		void XPBDSolve(double dt) {
-			//get C(NC,1) & J(NC,3*N)
 			int N = num_vertices;
 			int NC = num_edges;
-			const double alpha = 0.000005 / dt / dt;
-			//const double alpha = 0;
+			const double alpha = 0.0006 / dt / dt;
+			//const double alpha = 0;  
 			Eigen::VectorXd C = Eigen::VectorXd::Zero(NC);
-			Eigen::MatrixXd J = Eigen::MatrixXd::Zero(NC, 3 * N);//gradient C
-			for (int i = 0;i < num_edges;i++) {
+			std::vector<T> tripletList_J;
+			std::vector<T> tripletList_A;
+			for (int i = 0;i < N;i++) {
+				if (map(i) != -1) {
+					tripletList_A.push_back(T(3 * map(i), 3 * map(i), M_dt(3 * i, 3 * i)));
+					tripletList_A.push_back(T(3 * map(i) + 1, 3 * map(i) + 1, M_dt(3 * i, 3 * i)));
+					tripletList_A.push_back(T(3 * map(i) + 2, 3 * map(i) + 2, M_dt(3 * i, 3 * i)));
+				}
+			}
+			for (int i = 0;i < NC;i++) {
 				int id0 = edges_(i, 0);
 				int id1 = edges_(i, 1);
 				Eigen::Vector3d const p0 = pos_.row(id0);
 				Eigen::Vector3d const p1 = pos_.row(id1);
-				C(i) = (p0 - p1).norm() - rest_length_(i);
+				Eigen::Vector3d x = p0 - p1;
+				double n_L = (p0 - p1).norm();
+				Eigen::Vector3d f = -k * (n_L - rest_length_(i)) * (x / n_L);
 				Eigen::Vector3d n = (p0 - p1) / (p0 - p1).norm();
-				J.block<1, 3>(i, 3 * id0) = n;
-				J.block<1, 3>(i, 3 * id1) = -n;
+				C(i) = (p0 - p1).norm() - rest_length_(i);
+				for (int j = 0;j < 3;j++) {
+					if (map(id0) != -1) {
+						tripletList_A.push_back(T(3 * (N - num_att) + i, 3 * map(id0) + j, n(j)));
+						tripletList_A.push_back(T(3 * map(id0) + j, 3 * (N - num_att) + i, -n(j)));
+						//tripletList_J.push_back(T(i, 3 * map(id0) + j, n(j)));
+					}
+					if (map(id1) != -1) {
+						tripletList_A.push_back(T(3 * (N - num_att) + i, 3 * map(id1) + j, -n(j)));
+						tripletList_A.push_back(T(3 * map(id1) + j, 3 * (N - num_att) + i, n(j)));
+						//tripletList_J.push_back(T(i, 3 * map(id1) + j, -n(j)));
+					}
+				}
 			}
-			//get A 
-			Eigen::MatrixXd A = Eigen::MatrixXd::Zero(3 * N + NC, 3 * N + NC);
-			//A.block<3 * N, 3 * N>(0, 0) = M;
-			for (int i = 0;i <  N;i++) {
-				A(3 * i, 3 * i) = M(3 * i, 3 * i);
-				A(3 * i + 1, 3 * i + 1) = M(3 * i + 1, 3 * i + 1);
-				A(3 * i + 2, 3 * i + 2) = M(3 * i + 2, 3 * i + 2);
-			}
-			//A.block<NC, 3 * N>(3 * N, 0) = J;
 			for (int i = 0;i < NC;i++) {
-				for (int j = 0;j < 3 * N;j++) {
-					A(3 * N + i, j) = J(i, j);
-				}
+				tripletList_A.push_back(T(3 * (N - num_att) + i, 3 * (N - num_att) + i, alpha));
 			}
-			//A.block<3 * N, NC>(0, 3 * N) = -J.transpose();
-			for (int i = 0;i < 3*N;i++) {
-				for (int j = 0;j < NC;j++) {
-					A(i, 3 * N + j) = -J.transpose()(i, j);
-				}
-			}
-			//A.block<NC, NC>(3 * N, 3 * N) = alpha * Eigen::MatrixXd::Identity(NC, NC);
-			for (int i = 0;i < NC;i++) {
-				for (int j = 0;j < NC;j++) {
-					A(3 * N + i, 3 * N + j) = alpha;
-				}
-			}
-			/*std::cout << "A" << std::endl;
-			std::cout << A << std::endl;*/
-			//get b
-			Eigen::MatrixXd b = Eigen::MatrixXd::Zero(3 * N + NC, 1);
+			SparseMatrixType A(3 * (N-num_att) + NC, 3 * (N-num_att) + NC);
+			A.setFromTriplets(tripletList_A.begin(), tripletList_A.end());
+			Eigen::MatrixXd b = Eigen::MatrixXd::Zero(3 * (N-num_att) + NC, 1);
 			//b.block<NC, 1>(3 * N, 0) = -(C + alpha * lambda);
 			for (int i = 0;i < NC;i++) {
-				b(3*N+i, 0) = -(C(i, 0) + alpha * lambda(i, 0));
+				b(3 * (N-num_att) + i, 0) = -(C(i, 0) + alpha * lambda(i, 0));
 			}
-			/*std::cout << "b" << std::endl;
-			std::cout << b << std::endl;*/
-			//solve Ax=b
-			Eigen::MatrixXd x(3 * N + NC, 1);
-			x = A.ldlt().solve(b);
-			std::cout << "x" << std::endl;
-			std::cout << x << std::endl;
+			if (cnt == 0) {
+				cholesky_decomposition_.analyzePattern(A);
+			}
+			cholesky_decomposition_.factorize(A);
+			Eigen::MatrixXd x(3 * (N - num_att)+NC, 1);
+			Eigen::MatrixXd deta_x(3 * (N - num_att),1);
+			x = cholesky_decomposition_.solve(b.col(0));
 			//update V & lambda
+			int cnt_ = 0;
 			for (int i = 0;i < N;i++) {
-				if (w_(i, i) < 1e6) {
-					pos_(i, 0) += x(3 * i, 0);
-					pos_(i, 1) += x(3 * i + 1, 0);
-					pos_(i, 2) += x(3 * i + 2, 0);
+				if (map(i) != -1) {
+					//not attachment update position
+					int nId = map(i);
+					deta_x(nId, 0) = x(nId, 0);
+					pos_(i, 0) += x(3 * (i - cnt_), 0);
+					pos_(i, 1) += x(3 * (i - cnt_) + 1, 0);
+					pos_(i, 2) += x(3 * (i - cnt_) + 2, 0);
+				}
+				else {
+					cnt_++;
 				}
 			}
-			std::cout << "pos_" << std::endl;
-			std::cout << pos_ << std::endl;
+			/*if (deta_x.norm() < 1e-5) {
+				flag = true;
+			}*/
+			/*std::cout << "pos_" << std::endl;
+			std::cout << pos_ << std::endl;*/
 			for (int i = 0;i < NC;i++) {
-				lambda(i, 0) += x(3 * N + i, 0);
+				lambda(i, 0) += x(3 * (N-num_att) + i, 0);
 			}
+
 		}
+
+		//denseMatrix
+		//void XPBDSolve(double dt) {
+		//	//get C(NC,1) & J(NC,3*N)
+		//	int N = num_vertices;
+		//	int NC = num_edges;
+		//	const double alpha = 0.000005 / dt / dt;
+		//	//double Energy = 0;
+		//	//const double alpha = 0;
+		//	Eigen::VectorXd C = Eigen::VectorXd::Zero(NC);
+		//	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(NC, 3 * N);//gradient C
+		//	for (int i = 0;i < num_edges;i++) {
+		//		int id0 = edges_(i, 0);
+		//		int id1 = edges_(i, 1);
+		//		Eigen::Vector3d const p0 = pos_.row(id0);
+		//		Eigen::Vector3d const p1 = pos_.row(id1);
+		//		C(i) = (p0 - p1).norm() - rest_length_(i);
+		//		//double n_L = (p0 - p1).norm();
+		//		//Energy += 0.5 * k * (n_L - rest_length_(i)) * (n_L - rest_length_(i));
+		//		Eigen::Vector3d n = (p0 - p1) / (p0 - p1).norm();
+		//		J.block<1, 3>(i, 3 * id0) = n;
+		//		J.block<1, 3>(i, 3 * id1) = -n;
+		//	}
+		//	//get A 
+		//	Eigen::MatrixXd A = Eigen::MatrixXd::Zero(3 * N + NC, 3 * N + NC);
+		//	//A.block<3 * N, 3 * N>(0, 0) = M;
+		//	for (int i = 0;i <  N;i++) {
+		//		A(3 * i, 3 * i) = M(3 * i, 3 * i);
+		//		A(3 * i + 1, 3 * i + 1) = M(3 * i + 1, 3 * i + 1);
+		//		A(3 * i + 2, 3 * i + 2) = M(3 * i + 2, 3 * i + 2);
+		//	}
+		//	//A.block<NC, 3 * N>(3 * N, 0) = J;
+		//	for (int i = 0;i < NC;i++) {
+		//		for (int j = 0;j < 3 * N;j++) {
+		//			A(3 * N + i, j) = J(i, j);
+		//		}
+		//	}
+		//	//A.block<3 * N, NC>(0, 3 * N) = -J.transpose();
+		//	for (int i = 0;i < 3*N;i++) {
+		//		for (int j = 0;j < NC;j++) {
+		//			A(i, 3 * N + j) = -J.transpose()(i, j);
+		//		}
+		//	}
+		//	//A.block<NC, NC>(3 * N, 3 * N) = alpha * Eigen::MatrixXd::Identity(NC, NC);
+		//	for (int i = 0;i < NC;i++) {
+		//		for (int j = 0;j < NC;j++) {
+		//			A(3 * N + i, 3 * N + j) = alpha;//?wrong
+		//		}
+		//	}
+		//	/*std::cout << "A" << std::endl;
+		//	std::cout << A << std::endl;*/
+		//	//get b
+
+		//	Eigen::MatrixXd b = Eigen::MatrixXd::Zero(3 * N + NC, 1);
+		//	//b.block<NC, 1>(3 * N, 0) = -(C + alpha * lambda);
+		//	for (int i = 0;i < NC;i++) {
+		//		b(3*N+i, 0) = -(C(i, 0) + alpha * lambda(i, 0));
+		//	}
+		//	/*std::cout << "b" << std::endl;
+		//	std::cout << b << std::endl;*/
+		//	//solve Ax=b
+		//	Eigen::MatrixXd x(3 * N + NC, 1);
+		//	x = A.ldlt().solve(b);
+		//	/*std::cout << "x" << std::endl;
+		//	std::cout << x << std::endl;*/
+		//	
+		//	//update V & lambda
+		//	for (int i = 0;i < N;i++) {
+		//		if (map(i)!=-1) {
+		//			pos_(i, 0) += x(3 * i, 0);
+		//			pos_(i, 1) += x(3 * i + 1, 0);
+		//			pos_(i, 2) += x(3 * i + 2, 0);
+		//		}
+		//	}
+		//	/*std::cout << "pos_" << std::endl;
+		//	std::cout << pos_ << std::endl;*/
+		//	for (int i = 0;i < NC;i++) {
+		//		lambda(i, 0) += x(3 * N + i, 0);
+		//	}
+
+		//}
 
 		void NewtonSolve(double dt) {
 			//A= M/h^2+H
@@ -484,8 +574,10 @@ class Cloth {
 			int N = num_vertices;
 			int NC = num_edges;
 			//Eigen::MatrixXd H = Eigen::MatrixXd::Zero(3 * N, 3 * N);
-			Eigen::MatrixXd F = Eigen::MatrixXd::Zero(3 * N, 1);
+			//Eigen::MatrixXd F = Eigen::MatrixXd::Zero(3 * N, 1);
 			std::vector<T> tripletList_A;
+			std::vector<T> tripletList_F;
+			double Energy = 0;
 			for (int i = 0;i < N;i++) {
 				if (map(i) != -1) {
 					tripletList_A.push_back(T(3 * map(i), 3 * map(i), M_dt(3 * i, 3 * i)));
@@ -502,8 +594,16 @@ class Cloth {
 				Eigen::Vector3d x = p0 - p1;
 				double n_L = (p0 - p1).norm();
 				Eigen::Vector3d f = -k * (n_L - rest_length_(i)) * (x / n_L);
-				F.block<3, 1>(3 * id0, 0) += f;
-				F.block<3, 1>(3 * id1, 0) -= f;
+				Energy += 0.5 * k * (n_L - rest_length_(i)) * (n_L - rest_length_(i));
+				for (int j = 0;j < 3;j++) {
+					if (map(id0) != -1) {
+						tripletList_F.push_back(T(3 * map(id0) + j, 0, f(j)));
+					}
+					if (map(id1) != -1) {
+						tripletList_F.push_back(T(3 * map(id1) + j, 0, -f(j)));
+
+					}
+				}
 				Eigen::MatrixXd He = Eigen::MatrixXd::Zero(3, 3);
 				He = k * (x * x.transpose()) / (n_L * n_L) + k * (1 - rest_length_(i) / n_L) * (Eigen::MatrixXd::Identity(3, 3) - x * x.transpose() / (n_L * n_L));
 				for (int j = 0;j < 3;j++) {
@@ -531,30 +631,48 @@ class Cloth {
 			}
 			SparseMatrixType A(3*(N-num_att), 3*(N-num_att));
 			A.setFromTriplets(tripletList_A.begin(), tripletList_A.end());
+			
+			SparseMatrixType F(3 * (N - num_att), 1);
+			F.setFromTriplets(tripletList_F.begin(), tripletList_F.end());
+
 			cholesky_decomposition_.compute(A);
 			//get b
-			Eigen::MatrixXd b = Eigen::MatrixXd::Zero(3 * N, 1);
-			Eigen::MatrixXd line_x = Eigen::MatrixXd::Zero(3 * N, 1);
+			std::vector<T> tripletList_linex;
+			Eigen::MatrixXd b = Eigen::MatrixXd::Zero(3 * (N - num_att), 1);
+			double temp = 0;
 			for (int i = 0;i < N;i++) {
-				line_x(3 * i, 0) = pos_(i, 0) - old_pos_(i, 0) - dt * vel_(i, 0);
-				line_x(3 * i + 1, 0) = pos_(i, 1) - old_pos_(i, 1) - dt * vel_(i, 1);
-				line_x(3 * i + 2, 0) = pos_(i, 2) - old_pos_(i, 2) - dt * vel_(i, 2);
+				double mass = M_dt(3 * i, 3 * i);
+				if (map(i) != -1) {
+					for (int j = 0;j < 3;j++) {
+						tripletList_linex.push_back(T(3 * map(i) + j, 0, mass * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j))));
+						temp += mass * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j)) * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j));
+					}
+				}
+
+
 			}
-			b = -M * line_x / (dt * dt) + F;
-			for (int i = 0;i < num_att;i++) {
-				RemoveRow(b, 3 * attachmentIds[i] - 3 * i);
-				RemoveRow(b, 3 * attachmentIds[i] - 3 * i);
-				RemoveRow(b, 3 * attachmentIds[i] - 3 * i);
-			}
+			SparseMatrixType line_x(3 * (N - num_att), 1);
+			line_x.setFromTriplets(tripletList_linex.begin(), tripletList_linex.end());
+			b = -line_x + F;
+			std::fstream f;
+			std::string filename = "./Newton_data_21_Ite/IteInfo.txt";
+			f.open(filename, std::ios::out | std::ios::app);
+			f << "A:" << std::endl;
+			f << A << std::endl;
+			f << "b:" << std::endl;
+			f << b << std::endl;
+			//f << "===============================================" << std::endl;
+			f.close();
 			/*std::cout << "b" << std::endl;
 			std::cout << b << std::endl;*/
 			Eigen::MatrixXd deta_x(3 * (N-num_att), 1);
 			//deta_x = A.ldlt().solve(b);
 			deta_x = cholesky_decomposition_.solve(b.col(0));
+			double lastF = temp + Energy;
 			cnt++;
-			if (deta_x.norm() < 1e-5) {
+			/*if (deta_x.norm() < 1e-5) {
 				flag = true;
-			}
+			}*/
 			int cnt_ = 0;
 			for (int i = 0;i < N;i++) {
 				if (std::find(attachmentIds, attachmentIds + num_att, i) == attachmentIds + num_att) {
@@ -566,6 +684,10 @@ class Cloth {
 				else {
 					cnt_++;
 				}
+			}
+			double nF = getF(pos_);
+			if (std::abs(lastF - nF) < 1e-5) {
+				flag = true;
 			}
 
 		}
@@ -586,10 +708,10 @@ class Cloth {
 				F.block<3, 1>(3 * id0, 0) += f;
 				F.block<3, 1>(3 * id1, 0) -= f;
 			}
-			std::cout << "F(1)" << std::endl;
+			/*std::cout << "F(1)" << std::endl;
 			std::cout << F(3, 0) << std::endl;
 			std::cout << F(4, 0) << std::endl;
-			std::cout << F(5,0) << std::endl;
+			std::cout << F(5,0) << std::endl;*/
 			Eigen::MatrixXd b = Eigen::MatrixXd::Zero(3 * N, 1);
 			Eigen::MatrixXd line_x = Eigen::MatrixXd::Zero(3 * N, 1);
 			for (int i = 0;i < N;i++) {
@@ -597,23 +719,23 @@ class Cloth {
 				line_x(3 * i + 1, 0) = pos_(i, 1) - old_pos_(i, 1) - h * vel_(i, 1);
 				line_x(3 * i + 2, 0) = pos_(i, 2) - old_pos_(i, 2) - h * vel_(i, 2);
 			}
-			std::cout << "line_x(1)" << std::endl;
+			/*std::cout << "line_x(1)" << std::endl;
 			std::cout << line_x(3, 0) << std::endl;
 			std::cout << line_x(4, 0) << std::endl;
-			std::cout << line_x(5, 0) << std::endl;
-			b =0.001*(-M * line_x / (h * h) + F);
+			std::cout << line_x(5, 0) << std::endl;*/
+			b =0.00001*(-M * line_x / (h * h) + F);
 			//deta_x = A.ldlt().solve(b);
-			if (b.norm() < 1e-6) {
+			/*if (b.norm() < 1e-6) {
 				std::cout << "b.norm" << std::endl;
 				std::cout << b.norm() << std::endl;
 				flag = true;
-			}
-			std::cout << "b(1)" << std::endl;
+			}*/
+			/*std::cout << "b(1)" << std::endl;
 			std::cout << b(3, 0) << std::endl;
 			std::cout << b(4, 0) << std::endl;
-			std::cout << b(5,0) << std::endl;
+			std::cout << b(5,0) << std::endl;*/
 			for (int i = 0;i < N;i++) {
-				if (w_(i, i) < 1e6) {
+				if (map(i)!=-1) {
 					pos_(i, 0) += b(3 * i, 0);
 					pos_(i, 1) += b(3 * i + 1, 0);
 					pos_(i, 2) += b(3 * i + 2, 0);
@@ -621,7 +743,7 @@ class Cloth {
 					std::cout << V << std::endl;*/
 				}
 			}
-
+			cnt++;
 		}
 
 		//dense matrix
@@ -744,6 +866,190 @@ class Cloth {
 		//	}
 		//}
 
+		double getF(Eigen::MatrixXd tempPos) {
+			double Energy = 0;
+			for (int i = 0;i < num_edges;i++) {
+				int id0 = edges_(i, 0);
+				int id1 = edges_(i, 1);
+				Eigen::Vector3d const p0 = tempPos.row(id0);
+				Eigen::Vector3d const p1 = tempPos.row(id1);
+				Eigen::Vector3d x = p0 - p1;
+				double n_L = (p0 - p1).norm();
+				Energy += 0.5 * k * (n_L - rest_length_(i)) * (n_L - rest_length_(i));
+			}
+			for (int i = 0;i < num_vertices;i++) {
+				double mass = M_dt(3 * i, 3 * i);
+				if (map(i) != -1) {
+					for (int j = 0;j < 3;j++) {
+						Energy += mass * (tempPos(i, j) - old_pos_(i, j) - dt * vel_(i,j)) * (tempPos(i, j) - old_pos_(i, j) - dt * vel_(i, j));
+					}
+				}
+			}
+			return Energy;
+		}
+
+		void GaussNewton(double dt) {
+			int N = num_vertices;
+			int NC = num_edges;
+			std::vector<T> tripletList_F;
+			//Eigen::MatrixXd F = Eigen::MatrixXd::Zero(3 * N, 1);
+			//Eigen::MatrixXd J = Eigen::MatrixXd::Zero(NC, 3 * N);
+			double Energy = 0;
+			std::vector<T> tripletList_M;
+			for (int i = 0;i < N;i++) {
+				if (map(i) != -1) {
+					tripletList_M.push_back(T(3 * map(i), 3 * map(i), M_dt(3 * i, 3 * i)));
+					tripletList_M.push_back(T(3 * map(i) + 1, 3 * map(i) + 1, M_dt(3 * i, 3 * i)));
+					tripletList_M.push_back(T(3 * map(i) + 2, 3 * map(i) + 2, M_dt(3 * i, 3 * i)));
+				}
+			}
+			SparseMatrixType M_(3 * (N - num_att), 3 * (N - num_att));
+			M_.setFromTriplets(tripletList_M.begin(), tripletList_M.end());
+			std::vector<T> tripletList_J;
+			for (int i = 0;i < NC;i++) {
+				int id0 = edges_(i, 0);
+				int id1 = edges_(i, 1);
+				Eigen::Vector3d const p0 = pos_.row(id0);
+				Eigen::Vector3d const p1 = pos_.row(id1);
+				Eigen::Vector3d x = p0 - p1;
+				double n_L = (p0 - p1).norm();
+				Eigen::Vector3d f = -k * (n_L - rest_length_(i)) * (x / n_L);
+				Energy += 0.5 * k * (n_L - rest_length_(i)) * (n_L - rest_length_(i));
+				for (int j = 0;j < 3;j++) {
+					if (map(id0) != -1) {
+						tripletList_F.push_back(T(3 * map(id0) + j, 0, f(j)));
+					}
+					if (map(id1) != -1) {
+						tripletList_F.push_back(T(3 * map(id1) + j, 0, -f(j)));
+
+					}
+				}
+				Eigen::Vector3d n = (p0 - p1) / (p0 - p1).norm();
+				for (int j = 0;j < 3;j++) {
+					if (map(id0) != -1) {
+						tripletList_J.push_back(T(i, 3 * map(id0) + j, n(j)));
+					}
+					if (map(id1) != -1) {
+						tripletList_J.push_back(T(i, 3 * map(id1) + j, -n(j)));
+					}
+				}
+				/*J.block<1, 3>(i, 3 * id0) = n;
+				J.block<1, 3>(i, 3 * id1) = -n;*/
+			}
+			SparseMatrixType J(NC, 3 * (N - num_att));
+
+			J.setFromTriplets(tripletList_J.begin(), tripletList_J.end());
+			SparseMatrixType F(3 * (N - num_att), 1);
+			F.setFromTriplets(tripletList_F.begin(), tripletList_F.end());
+			SparseMatrixType H(3 * (N - num_att), 3 * (N - num_att));
+			//H = k * J.transpose() * J;
+			H = k*J.transpose() * J;
+			//only diag
+			SparseMatrixType diagH(3 * (N - num_att), 3 * (N - num_att));
+			for (int i = 0;i < 3 * (N - num_att);i++) {
+				diagH.insert(i, i) = H.coeff(i, i);
+			}
+			SparseMatrixType A = M_ + diagH;
+			//Eigen::LLT<Eigen::MatrixXd> lltOfA(A); // compute the Cholesky decomposition of A
+			//if (lltOfA.info() == Eigen::NumericalIssue)
+			//{
+			//	throw std::runtime_error("Possibly non semi-positive definitie matrix!");
+			//}
+		
+			//std::cout << "get A SpendTime = " << diff.count() << "ms" << std::endl;
+			//A = diagH;
+			//Eigen::MatrixXd A_ = Eigen::MatrixXd::Zero(3 * (N - num_att), 3 * (N - num_att));
+			//delete attachment
+			if (cnt == 0) {
+				cholesky_decomposition_.analyzePattern(A);
+			}
+			cholesky_decomposition_.factorize(A);
+			//cholesky_decomposition_.compute(A);
+			//std::cout << "cholesky_decomposition_ SpendTime = " << diff.count() << "ms" << std::endl;
+			//get b
+			//SparseMatrixType b(3 * (N - num_att), 1);
+			std::vector<T> tripletList_linex;
+			Eigen::MatrixXd b = Eigen::MatrixXd::Zero(3 * (N - num_att), 1);
+			double temp = 0;
+			for (int i = 0;i < N;i++) {
+				double mass = M_dt(3 * i, 3 * i);
+				if (map(i) != -1) {
+					for (int j = 0;j < 3;j++) {
+						tripletList_linex.push_back(T(3 * map(i) + j, 0, mass * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j))));
+						temp += mass * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j)) * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j));
+					}
+					/*line_x(3 * i, 0) = mass * (pos_(i, 0) - old_pos_(i, 0) - dt * vel_(i, 0));
+					line_x(3 * i + 1, 0) = mass * (pos_(i, 1) - old_pos_(i, 1) - dt * vel_(i, 1));
+					line_x(3 * i + 2, 0) = mass * (pos_(i, 2) - old_pos_(i, 2) - dt * vel_(i, 2));*/
+				}
+
+
+			}
+			SparseMatrixType line_x(3 * (N - num_att), 1);
+			line_x.setFromTriplets(tripletList_linex.begin(), tripletList_linex.end());
+			b = -line_x + F;
+			/*std::cout << "b(22)" << std::endl;
+			std::cout << b(20 * 3, 0) << std::endl;
+			std::cout << b(20 * 3 + 1, 0) << std::endl;
+			std::cout << b(20 * 3 + 2, 0) << std::endl;*/
+			//std::cout << "getb SpendTime = " << diff.count() << "ms" << std::endl;
+			Eigen::MatrixXd deta_x(3 * (N - num_att), 1);
+			deta_x = cholesky_decomposition_.solve(b.col(0));
+			//linesearch
+			double alpha = 1;
+			Eigen::MatrixXd tempPos = pos_;
+			int cnt_ = 0;
+			for (int i = 0;i < N;i++) {
+				if (map(i) != -1) {
+					//not attachment update position
+					tempPos(i, 0) +=  alpha * deta_x(3 * (i - cnt_), 0);
+					tempPos(i, 1) +=  alpha * deta_x(3 * (i - cnt_) + 1, 0);
+					tempPos(i, 2) +=  alpha * deta_x(3 * (i - cnt_) + 2, 0);
+				}
+				else {
+					cnt_++;
+				}
+			}
+			double lastF = temp + Energy;
+			double nF = getF(tempPos);
+			while (nF >lastF && (nF-lastF)>1e-5) {
+				alpha /= 2;
+				cnt_ = 0;
+				for (int i = 0;i < N;i++) {
+					if (map(i) != -1) {
+						//not attachment update position
+						tempPos(i, 0) = pos_(i, 0) + alpha * deta_x(3 * (i - cnt_), 0);
+						tempPos(i, 1) = pos_(i, 1) + alpha * deta_x(3 * (i - cnt_) + 1, 0);
+						tempPos(i, 2) = pos_(i, 2) + alpha * deta_x(3 * (i - cnt_) + 2, 0);
+					}
+					else {
+						cnt_++;
+					}
+				}
+				nF = getF(tempPos);
+			}
+			pos_ = tempPos;
+			/*std::cout << "deta_x(22)" << std::endl;
+			std::cout << deta_x(20 * 3, 0) << std::endl;
+			std::cout << deta_x(20 * 3 + 1, 0) << std::endl;
+			std::cout << deta_x(20 * 3 + 2, 0) << std::endl;*/
+			//nF = getF(tempPos);
+			cnt++;
+			std::fstream f;
+			std::string filename = "./GassDiag_data_21_maxIte/frameIte.txt";
+			f.open(filename, std::ios::out | std::ios::app);
+			f << "deta_x:"+std::to_string(deta_x.norm())<<std::endl;
+			f << "nF" + std::to_string(nF) << std::endl;
+			//f << "===============================================" << std::endl;
+			f.close();
+			if ((lastF - nF) < 1e-5) {
+				flag = true;
+			}
+			
+			//std::cout << "updatePos SpendTime =  " << diff.count() << "ms" << std::endl;
+			//Eigen::MatrixXd temp = line_x.transpose() * M * line_x / (dt * dt);
+		}
+
 
 		void LMSolve(double dt) {
 			int N = num_vertices;
@@ -806,10 +1112,11 @@ class Cloth {
 			SparseMatrixType F(3 * (N-num_att), 1);
 			F.setFromTriplets(tripletList_F.begin(), tripletList_F.end());
 			SparseMatrixType H(3 * (N - num_att),3 * (N - num_att));
-			start = std::chrono::high_resolution_clock::now();
+			//start = std::chrono::high_resolution_clock::now();
 			H = k * J.transpose() * J;
-			end = std::chrono::high_resolution_clock::now();
-			diff = end - start;
+			//H = J.transpose() * J;
+			//end = std::chrono::high_resolution_clock::now();
+			//diff = end - start;
 			//std::cout << "get JTJ SpendTime = " << diff.count() << "ms" << std::endl;
 
 			/*std::cout << "H"<< std::endl;
@@ -818,28 +1125,32 @@ class Cloth {
 			SparseMatrixType diagA(3 * (N - num_att), 3 * (N - num_att));
 
 			//Eigen::MatrixXd diagH = Eigen::MatrixXd::Zero(3 * N, 3 * N);
-			start = std::chrono::high_resolution_clock::now();
+			//start = std::chrono::high_resolution_clock::now();
 			for (int i = 0;i < 3 * (N-num_att);i++) {
 				diagA.insert(i, i) = A.coeff(i, i);
 			}
-			end = std::chrono::high_resolution_clock::now();
-			diff = end - start;
+			//end = std::chrono::high_resolution_clock::now();
+			//diff = end - start;
 			//std::cout << "get diagA SpendTime = " << diff.count() << "ms" << std::endl;
 
 			//a = 0;
-			start = std::chrono::high_resolution_clock::now();
+			//start = std::chrono::high_resolution_clock::now();
 			A += a * diagA;
-			A /= a;
-			end = std::chrono::high_resolution_clock::now();
-			diff = end - start;
+			//A /= a;
+			//end = std::chrono::high_resolution_clock::now();
+			//diff = end - start;
 			//std::cout << "get A SpendTime = " << diff.count() << "ms" << std::endl;
 			//A = diagH;
 			//Eigen::MatrixXd A_ = Eigen::MatrixXd::Zero(3 * (N - num_att), 3 * (N - num_att));
 			//delete attachment
-			start = std::chrono::high_resolution_clock::now();
-			cholesky_decomposition_.compute(A);
-			end = std::chrono::high_resolution_clock::now();
-			diff = end - start;
+			//start = std::chrono::high_resolution_clock::now();
+			if (cnt == 0) {
+				cholesky_decomposition_.analyzePattern(A);
+			}
+			cholesky_decomposition_.factorize(A);
+			//cholesky_decomposition_.compute(A);
+			//end = std::chrono::high_resolution_clock::now();
+			//diff = end - start;
 			//std::cout << "cholesky_decomposition_ SpendTime = " << diff.count() << "ms" << std::endl;
 			//get b
 			//SparseMatrixType b(3 * (N - num_att), 1);
@@ -852,8 +1163,9 @@ class Cloth {
 				if (map(i) != -1) {
 					for (int j = 0;j < 3;j++) {
 						tripletList_linex.push_back(T(3 * map(i) + j, 0,mass*(pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j))));
+						temp += mass * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j)) * (pos_(i, j) - old_pos_(i, j) - dt * vel_(i, j));
+
 					}
-					temp += mass * (pos_(i, 0) - old_pos_(i, 0) - dt * vel_(i, 0)) * (pos_(i, 0) - old_pos_(i, 0) - dt * vel_(i, 0));
 					/*line_x(3 * i, 0) = mass * (pos_(i, 0) - old_pos_(i, 0) - dt * vel_(i, 0));
 					line_x(3 * i + 1, 0) = mass * (pos_(i, 1) - old_pos_(i, 1) - dt * vel_(i, 1));
 					line_x(3 * i + 2, 0) = mass * (pos_(i, 2) - old_pos_(i, 2) - dt * vel_(i, 2));*/
@@ -862,15 +1174,16 @@ class Cloth {
 				
 			}
 			SparseMatrixType line_x(3 * (N-num_att), 1);
-			b = line_x + F;
+			line_x.setFromTriplets(tripletList_linex.begin(), tripletList_linex.end());
+			b = -line_x + F;
 			end = std::chrono::high_resolution_clock::now();
 			diff = end - start;
 			//std::cout << "getb SpendTime = " << diff.count() << "ms" << std::endl;
 			Eigen::MatrixXd deta_x(3 * (N - num_att), 1);
-			start = std::chrono::high_resolution_clock::now();
+			//start = std::chrono::high_resolution_clock::now();
 			deta_x = cholesky_decomposition_.solve(b.col(0));
-			end = std::chrono::high_resolution_clock::now();
-			diff = end - start;
+			//end = std::chrono::high_resolution_clock::now();
+			//diff = end - start;
 			//std::cout << "solveAx=b SpendTime =  " << diff.count() << "ms" << std::endl;
 			//deta_x = A.ldlt().solve(b);
 			/*std::cout << "deta_x(1)" << std::endl;
@@ -880,13 +1193,13 @@ class Cloth {
 			cnt++;
 			/*std::cout << "deta_x" << std::endl;
 			std::cout << deta_x << std::endl;*/
-			if (deta_x.norm() < 1e-5) {
+			/*if (deta_x.norm() < 1e-5) {
 				flag = true;
-			}
+			}*/
 			int cnt_ = 0;
 			Eigen::MatrixXd temp_pos_ = Eigen::MatrixXd::Zero(N, 3);
 			temp_pos_ = pos_;
-			start = std::chrono::high_resolution_clock::now();
+			//start = std::chrono::high_resolution_clock::now();
 			for (int i = 0;i < N;i++) {
 				if (map(i)!=-1) {
 					//not attachment update position
@@ -898,15 +1211,29 @@ class Cloth {
 					cnt_++;
 				}
 			}
-			end = std::chrono::high_resolution_clock::now();
-			diff = end - start;
+			/*end = std::chrono::high_resolution_clock::now();
+			diff = end - start;*/
 			//std::cout << "updatePos SpendTime =  " << diff.count() << "ms" << std::endl;
 			//Eigen::MatrixXd temp = line_x.transpose() * M * line_x / (dt * dt);
-			double nF = temp + Energy;
+			double lastF = temp + Energy;
+			double nF = getF(pos_);
+			std::fstream f;
+			std::string filename = "./LM_data_21_Ite/frameIte.txt";
+			f.open(filename, std::ios::out | std::ios::app);
+			f << "a:" +std::to_string(a) << std::endl;
+			f << "deta_x:"+std::to_string(deta_x.norm()) << std::endl;
+			f << "nF"+std::to_string(nF) << std::endl;
+			f << "lastF"+std::to_string(lastF) << std::endl;
+			//f << "===============================================" << std::endl;
+			f.close();
 			/*std::cout << "nF" << std::endl;
 			std::cout << nF << std::endl;
 			std::cout << "lastF" << std::endl;
 			std::cout << lastF << std::endl;*/
+			if (std::abs(lastF - nF) < 1e-5 ){
+				flag = true;
+			}
+
 			if (nF > lastF) {
 				a *= 10;
 				pos_ = temp_pos_;
@@ -916,6 +1243,7 @@ class Cloth {
 				lastF = nF;
 
 			}
+			
 		}
 
 		void update(double dt, int maxIte) {
@@ -925,20 +1253,28 @@ class Cloth {
 			PBD_presolve(dt);
 			flag = false;
 			for (int i = 0;i < maxIte;i++) {
-				//PBD_solve();
+				PBD_solve();
 				//XPBDSolve(dt);
-				NewtonSolve(dt);
+				//NewtonSolve(dt);
 				//LMSolve(dt);
 				//GradientDescentSolve(dt);
+				//GaussNewton(dt);
 				if (flag) {
 					break;
 				}
 			}
+			std::cout << std::to_string(frame) + ":" + std::to_string(cnt) << std::endl;
+			std::cout << "===========" << std::endl;
+			std::fstream f;
+			std::string filename = "./XPBD_data_21_maxIte/frameIte.txt";
+			f.open(filename, std::ios::out | std::ios::app);
+			f << std::to_string(frame)+":"+std::to_string(cnt) << std::endl;
+			f << "===============================================" << std::endl;
+			f.close();
 			/*std::cout << "end" << std::endl;
 			std::cout << cnt << std::endl;*/
 			PBD_postsolve(dt);
-			std::fstream f;
-			std::string filename = "./Newton_data_21/cloth_" +std::to_string(frame)+".obj";
+			filename = "./XPBD_data_21_maxIte/cloth_" +std::to_string(frame)+".obj";
 			f.open(filename, std::ios::out | std::ios::app);
 			for (int i = 0;i < num_vertices;i++) {
 				f << "v ";
